@@ -147,18 +147,24 @@ let rec remplir_triangle_bas (n:int)((i,j,k):case):case list=
   else remplir_segment n (i,j,k) @ remplir_triangle_bas (n-1) (i-1,j+1,k);;
 
 (* Q14 *)
+(* Ajoute à chaque case un paramètre couleur *)
 let colorie (c:couleur)(l:case list):case_coloree list=
   List.map (fun x -> x,c) l;;
 
 (* Q15 *)
-(* On utilise function pour faire du pattern matching pour prendre la case sans la couleur *)
+(* On utilise function pour faire du pattern matching pour prendre la case sans la couleur 
+   On applique une rotation à chaque case et on reconstruit la configuration *)
 let tourner_conf (r:int)((lcaco,joueurs,dim):configuration):configuration=
   List.map (function (case,couleur) -> (rotation r case),couleur) lcaco,tourner_liste joueurs,dim;;
 
 (* Q16 *)
+(* Fonction intermédiaire pour remplir_init qui rempli le triangle du bas dans une configuration
+   avec les pions d'un joueur donné en argument *)
 let creer_camp (joueur:couleur)((lcaco,lcodes,d):configuration):configuration=
   (colorie joueur (remplir_triangle_bas d (-d-1,1,d))@lcaco,joueur::lcodes,d);;
 
+(* Initialise une configuration avec les camps des joueurs donnés en argument remplis adéquatement
+   ex : affiche (remplir_init [Code "Ali";Code "Bob";Code "Jim"] 3);; *)
 let remplir_init (lj:couleur list)(d:int):configuration=
   List.fold_left (fun c j -> creer_camp j (tourner_conf (6 / List.length lj) c)) ([], [], d) lj;;
 
@@ -167,7 +173,7 @@ let rec associe a l defaut=
   | [] -> defaut
   | (a2, b) :: suite -> if a = a2 then b else associe a suite defaut;;
 
-(*AFFICHAGE (fonctionne si les fonctions au dessus sont remplies)*)
+(*AFFICHAGE*)
 (*transfo transforme des coordonnees cartesiennes (x,y) en coordonnees de case (i,j,k)*)
 let transfo x y = (y, (x-y)/2,(-x-y)/2);;
 
@@ -223,8 +229,3 @@ let conf_init : configuration =
   ((-3, 1, 2), Vert); ((-3, 2, 1), Vert);((-4, 2, 2), Vert); ((-5, 3, 2), Vert)],
    [Vert; Jaune], (* liste couleurs *)
    2);; (* dimension *)
-
-affiche conf_init;;
-(*A essayer apres avoir fait remplir_init
-affiche (remplir_init [Code "Ali";Code "Bob";Code "Jim"] 3);;
-*)
