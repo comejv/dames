@@ -152,16 +152,15 @@ let colorie (c:couleur)(l:case list):case_coloree list=
 
 (* Q15 *)
 (* On utilise function pour faire du pattern matching pour prendre la case sans la couleur *)
-let tourner_conf ((lcaco,joueurs,dim):configuration):configuration=
-  let n=List.length joueurs in
-    List.map (function (case,couleur) -> (rotation (6/n) case),couleur) lcaco,tourner_liste joueurs,dim;;
+let tourner_conf (r:int)((lcaco,joueurs,dim):configuration):configuration=
+  List.map (function (case,couleur) -> (rotation r case),couleur) lcaco,tourner_liste joueurs,dim;;
 
 (* Q16 *)
 let creer_camp (joueur:couleur)((lcaco,lcodes,d):configuration):configuration=
   (colorie joueur (remplir_triangle_bas d (-d-1,1,d))@lcaco,joueur::lcodes,d);;
 
 let remplir_init (lj:couleur list)(d:int):configuration=
-  List.fold_left (fun c j -> creer_camp j (tourner_conf c)) ([], [], d) lj;;
+  List.fold_left (fun c j -> creer_camp j (tourner_conf (6 / List.length lj) c)) ([], [], d) lj;;
 
 let rec associe a l defaut=
   match l with
