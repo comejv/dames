@@ -154,24 +154,47 @@ let colorie (c:couleur)(l:case list):case_coloree list=
 (* Q15 *)
 (* On utilise function pour faire du pattern matching pour prendre la case sans la couleur 
    On applique une rotation à chaque case et on reconstruit la configuration *)
-let tourner_conf (r:int)((lcaco,joueurs,dim):configuration):configuration=
-  List.map (function (case,couleur) -> (rotation r case),couleur) lcaco,tourner_liste joueurs,dim;;
+let tourner_conf (r:int)((lcc,joueurs,dim):configuration):configuration=
+  List.map (function (case,couleur) -> (rotation r case),couleur) lcc,tourner_liste joueurs,dim;;
 
 (* Q16 *)
 (* Fonction intermédiaire pour remplir_init qui rempli le triangle du bas dans une configuration
    avec les pions d'un joueur donné en argument *)
-let creer_camp (joueur:couleur)((lcaco,lcodes,d):configuration):configuration=
-  (colorie joueur (remplir_triangle_bas d (-d-1,1,d))@lcaco,joueur::lcodes,d);;
+let creer_camp (joueur:couleur)((lcc,ljoueurs,dim):configuration):configuration=
+  (colorie joueur (remplir_triangle_bas dim (-dim-1,1,dim))@lcc,joueur::ljoueurs,dim);;
 
 (* Initialise une configuration avec les camps des joueurs donnés en argument remplis adéquatement
    ex : affiche (remplir_init [Code "Ali";Code "Bob";Code "Jim"] 3);; *)
-let remplir_init (lj:couleur list)(d:int):configuration=
-  List.fold_left (fun c j -> creer_camp j (tourner_conf (6 / List.length lj) c)) ([], [], d) lj;;
+let remplir_init (lj:couleur list)(dim:int):configuration=
+  List.fold_left (fun c j -> creer_camp j (tourner_conf (6 / List.length lj) c)) ([], [], dim) lj;;
 
+(* Q17 *)
 let rec associe a l defaut=
   match l with
   | [] -> defaut
   | (a2, b) :: suite -> if a = a2 then b else associe a suite defaut;;
+
+let quelle_couleur (case:case)((lc,lj,d):configuration):couleur=
+  associe case lc Libre;;
+
+(* Q18 *)
+let suppr_case (lcc:case_coloree list)(c1:case):case_coloree list =
+  List.filter (function (c2,couleur) -> c2 <> c1) lcc;;
+
+(* Q19 *)
+let coup_valide ((lcc,lj,d):configuration)(Du(c1,c2):coup):bool=
+  est_dans_etoile c1 d && est_dans_etoile c2 d &&
+  sont_cases_voisines c1 c2 && quelle_couleur c1 (lcc,lj,d) = List.hd lj
+  && quelle_couleur c2 (lcc,lj,d) = Libre;;
+
+(* Q20 *)
+let applique_coup ((lcc,lj,d):configuration)(Du(c1,c2):coup):configuration=
+  colorie (List.hd lj) [c2] @ suppr_case lcc c1,lj,d;;
+
+(* Q21 *)
+let maj_conf (conf:configuration)(coup:coup):configuration=
+  if coup_valide conf coup then applique_coup conf coup else
+    failwith "Ce coup n'est pas valide, le joueur doit rejouer";;
 
 (*AFFICHAGE*)
 (*transfo transforme des coordonnees cartesiennes (x,y) en coordonnees de case (i,j,k)*)
