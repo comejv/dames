@@ -90,13 +90,17 @@ let sont_cases_voisines (c1: case)(c2:case):bool=
 (* Q8 *)
 (* Pour vérifier que le pivot est possible on vérifie qu'il y a un nombre pair de
 cases entre le départ (exclu) et l’arrivée (inclus) et qu'elles sont alignées ;
-si oui on translate de la moitiée de l'écart entre elles pour obtenir le pivot *)
-let calcul_pivot ((i, j, k): case)((m, n, o):case):case option=
+si oui on translate de la moitiée de l'écart entre elles pour obtenir le pivot.
+Il faut ensuite que le pivot existe dans la liste de cases colorées donnée. *)
+let calcul_pivot ((i, j, k): case)((m, n, o):case)(lcc: case_coloree list):case option=
   let (a,b,c) = diff_case (m, n, o) (i, j, k) in
     (* on vérifie qu'il y a un nombre pair entre les cases et qu'elles sont alignées*)
     if (i=m||j=n||k=o)&&(a mod 2 = 0 && b mod 2 = 0 && c mod 2 = 0)
       (* si oui on translate de la moitiée de l'écart entre elles *)
-      then Some (translation (i,j,k) (a/2,b/2,c/2))
+      then let p = translation (i,j,k) (a/2,b/2,c/2) in
+      (* On vérifie que le pivot existe dans la conf donnée *)
+      if List.exists (function (case,_) -> case = p) lcc then Some (p)
+      else None
     else
       None;;
 
@@ -206,19 +210,19 @@ let rec remplir_segment ((i,j,k):case)(c2:case):case list=
     (i,j,k)::(remplir_segment (i+a,j+b,k+c) c2);;
 
 let est_libre_seg (c1:case)(c2:case)(conf:configuration):bool=
-  List.fold_left (fun x y -> x && (quelle_couleur y conf = Libre)) true (remplir_segment c1 c2);;
+  List.for_all (fun x -> quelle_couleur x conf = Libre) (remplir_segment c1 c2);;
 
 (* Q23 *)
 (* Pour vérifier qu'un saut est valide on vérifie que les cases de départ et d'arrivée existent,
    que c1 appartient au joueur qui joue, puis que les cases entre le pivot et c1 c2 sont libres.*)
 let saut_valide (c1:case)(c2:case)((lcc,lj,d):configuration):bool=
-  match calcul_pivot c1 c2 with
+  match calcul_pivot c1 c2 lcc with
   |None -> false
   |Some p -> est_dans_losange c1 d && est_dans_losange c2 d && quelle_couleur c1 (lcc,lj,d) = List.hd lj &&
             (* On vérifie que les cases entre c1 et le c2 sont libres. On ne peut pas utiliser est_libre_seg
                car il y a le pivot au milieu, mais c'est sensiblement la même fonction *)
-            List.fold_left (fun x y -> x && (y = c1 || y = p || y = c2 || quelle_couleur y (lcc,lj,d) = Libre))
-            true (remplir_segment c1 c2);;
+            List.for_all (fun x -> x = c1 || x = p || x = c2 || quelle_couleur x (lcc,lj,d) = Libre)
+            (remplir_segment c1 c2);;
 
 (*AFFICHAGE*)
 (*transfo transforme des coordonnees cartesiennes (x,y) en coordonnees de case (i,j,k)*)
