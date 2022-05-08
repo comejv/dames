@@ -112,7 +112,7 @@ let vec_et_dist ((i,j,k):case)((m,n,o):case):case*int=
       (* Pour éviter de chercher quelle coordonnée est nulle on
       additionne tout et divise par deux, on obtient la distance *)
       let d=((abs a + abs b + abs c)/2) in
-        ((a/d,b/d,c/d), d);;
+        if d = 0 then ((0,0,0),0) else ((a/d,b/d,c/d), d);;
 
 (* Q10 *)
 let tourner_liste (l: 'a list):'a list=
@@ -126,25 +126,25 @@ let rec der_liste (l:'a list):'a=
   |e::r -> der_liste r;;
 
 (* Q11 *)
-(* remplir_segment 1 (i,j,k) = [(i,j,k)]
-   remplir_segment n>1 (i,j,k) = (i,j,k) :: remplir_segment (n-1) (i,j+1,k-1)  *)
-let rec remplir_segment (n:int)((i,j,k):case):case list=
+(* remplir_segment_h 1 (i,j,k) = [(i,j,k)]
+   remplir_segment_h n>1 (i,j,k) = (i,j,k) :: remplir_segment_h (n-1) (i,j+1,k-1)  *)
+let rec remplir_segment_h (n:int)((i,j,k):case):case list=
   if n=1 then [(i,j,k)]
-  else (i,j,k)::(remplir_segment (n-1) (i,j+1,k-1));;
+  else (i,j,k)::(remplir_segment_h (n-1) (i,j+1,k-1));;
 
 (* Q12 *)
 (* remplir_triangle_haut 1 (i,j,k) = [i,j,k]
-   remplir_triangle_haut n>1 (i,j,k) = remplir_segment n (i,j,k) @ remplir_triangle_haut n-1 (i+1,j,k-1) *)
+   remplir_triangle_haut n>1 (i,j,k) = remplir_segment_h n (i,j,k) @ remplir_triangle_haut n-1 (i+1,j,k-1) *)
 let rec remplir_triangle_haut (n:int)((i,j,k):case):case list=
   if n=1 then [i,j,k]
-  else remplir_segment n (i,j,k) @ remplir_triangle_haut (n-1) (i+1,j,k-1);;
+  else remplir_segment_h n (i,j,k) @ remplir_triangle_haut (n-1) (i+1,j,k-1);;
 
 (* Q13 *)
 (* remplir_triangle_bas 1 (i,j,k) = [i,j,k]
-   remplir_triangle_bas n>1 (i,j,k) = remplir_segment n (i,j,k) @ remplir_triangle_bas n-1 (i-1,j+1,k) *)
+   remplir_triangle_bas n>1 (i,j,k) = remplir_segment_h n (i,j,k) @ remplir_triangle_bas n-1 (i-1,j+1,k) *)
 let rec remplir_triangle_bas (n:int)((i,j,k):case):case list=
   if n=1 then [i,j,k]
-  else remplir_segment n (i,j,k) @ remplir_triangle_bas (n-1) (i-1,j+1,k);;
+  else remplir_segment_h n (i,j,k) @ remplir_triangle_bas (n-1) (i-1,j+1,k);;
 
 (* Q14 *)
 (* Ajoute à chaque case un paramètre couleur *)
@@ -183,7 +183,7 @@ let suppr_case (lcc:case_coloree list)(c1:case):case_coloree list =
 
 (* Q19 *)
 let coup_valide ((lcc,lj,d):configuration)(Du(c1,c2):coup):bool=
-  est_dans_etoile c1 d && est_dans_etoile c2 d &&
+  est_dans_losange c1 d && est_dans_losange c2 d &&
   sont_cases_voisines c1 c2 && quelle_couleur c1 (lcc,lj,d) = List.hd lj
   && quelle_couleur c2 (lcc,lj,d) = Libre;;
 
@@ -195,6 +195,30 @@ let applique_coup ((lcc,lj,d):configuration)(Du(c1,c2):coup):configuration=
 let maj_conf (conf:configuration)(coup:coup):configuration=
   if coup_valide conf coup then applique_coup conf coup else
     failwith "Ce coup n'est pas valide, le joueur doit rejouer";;
+
+(* Q22 *)
+(* Pour les questions suuivantes on utilise une version améliorée de
+   remplir_segment_h qui gère les segments non horizontaux *)
+let rec remplir_segment ((i,j,k):case)(c2:case):case list=
+  if (i,j,k) = c2 then [c2] else
+  let ((a,b,c),d) = vec_et_dist (i,j,k) c2 in
+    (i,j,k)::(remplir_segment (i+a,j+b,k+c) c2);;
+
+let est_libre_seg (c1:case)(c2:case)(conf:configuration):bool=
+  let segment = remplir_segment c1 c2 in
+    List.fold_left (fun x y -> x && (quelle_couleur y conf = Libre)) true segment;;
+
+(* Q23 *)
+(* Pour vérifier qu'un saut est valide on vérifie que les cases de départ et d'arrivée existent,
+   que c1 appartient au joueur qui joue, puis que les cases entre le pivot et c1 c2 sont libres *)
+let saut_valide (c1:case)(c2:case)((lcc,lj,d):configuration):bool=
+  let pivot = calcul_pivot c1 c2 in match pivot with
+  |None -> false
+  |Some p -> est_dans_losange c1 d && est_dans_losange c2 d && quelle_couleur c1 (lcc,lj,d) = List.hd lj &&
+            List.fold_left (fun x y -> x && (y = c1 || y = p || quelle_couleur y (lcc,lj,d) = Libre))
+            true (remplir_segment c1 p) &&
+            List.fold_left (fun x y -> x && (y = p || y = c2 || quelle_couleur y (lcc,lj,d) = Libre))
+            true (remplir_segment p c2);;
 
 (*AFFICHAGE*)
 (*transfo transforme des coordonnees cartesiennes (x,y) en coordonnees de case (i,j,k)*)
