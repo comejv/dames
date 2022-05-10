@@ -186,43 +186,54 @@ let quelle_couleur (case:case)((lc,lj,d):configuration):couleur=
 let suppr_case (lcc:case_coloree list)(c1:case):case_coloree list =
   List.filter (function (c2,couleur) -> c2 <> c1) lcc;;
 
+(* Q19-21 déplacées car utilisent les fonctions des questions 21-24 *)
+  
+(* Q22 *)
+(* Pour les questions suivantes on utilise une version améliorée de
+remplir_segment_h qui gère les segments non horizontaux *)
+let rec remplir_segment ((i,j,k):case)(c2:case):case list=
+if (i,j,k) = c2 then [c2] else
+  let ((a,b,c),d) = vec_et_dist (i,j,k) c2 in
+  (i,j,k)::(remplir_segment (i+a,j+b,k+c) c2);;
+  
+  let est_libre_seg (c1:case)(c2:case)(conf:configuration):bool=
+  List.for_all (fun x -> quelle_couleur x conf = Libre) (remplir_segment c1 c2);;
+  
+  (* Q23 *)
+  (* Pour vérifier qu'un saut est valide on vérifie que les cases de départ et d'arrivée existent,
+  puis que les cases entre le pivot et c1 c2 sont libres.*)
+  let saut_valide (c1:case)(c2:case)((lcc,lj,d):configuration):bool=
+  match calcul_pivot c1 c2 lcc with
+  |None -> false
+  |Some p -> est_dans_etoile c1 d && est_dans_losange c2 d &&
+  (* On vérifie que les cases entre c1 et le c2 sont libres. On ne peut pas utiliser est_libre_seg
+  car il y a le pivot au milieu, mais c'est sensiblement la même fonction *)
+  List.for_all (fun x -> x = c1 || x = p || x = c2 || quelle_couleur x (lcc,lj,d) = Libre)
+  (remplir_segment c1 c2);;
+  
+  (* Q24 *)
+  let saut_multiple_valide (lc:case list)(conf:configuration):bool=
+  let b,cf = List.fold_left (fun (b, c1) c2 -> (b && saut_valide c1 c2 conf),c2) (true, List.hd lc) (List.tl lc)
+in b;;
+
 (* Q19 *)
-let coup_valide ((lcc,lj,d):configuration)(Du(c1,c2):coup):bool=
-  est_dans_losange c1 d && est_dans_losange c2 d &&
-  sont_cases_voisines c1 c2 && quelle_couleur c1 (lcc,lj,d) = List.hd lj
-  && quelle_couleur c2 (lcc,lj,d) = Libre;;
+let coup_valide ((lcc,lj,d):configuration)(c:coup):bool=
+match c with
+|Du(c1,c2) -> est_dans_losange c1 d && est_dans_losange c2 d &&
+sont_cases_voisines c1 c2 && quelle_couleur c1 (lcc,lj,d) = List.hd lj
+&& quelle_couleur c2 (lcc,lj,d) = Libre
+|Sm(lc) -> saut_multiple_valide lc (lcc,lj,d);;
 
 (* Q20 *)
-let applique_coup ((lcc,lj,d):configuration)(Du(c1,c2):coup):configuration=
-  colorie (List.hd lj) [c2] @ suppr_case lcc c1,lj,d;;
+let applique_coup ((lcc,lj,d):configuration)(c:coup):configuration=
+match c with
+|Du(c1,c2) -> colorie (List.hd lj) [c2] @ suppr_case lcc c1,lj,d
+|Sm(lc) -> colorie (List.hd lj) [der_liste lc] @ suppr_case lcc (List.hd lc),lj,d
 
 (* Q21 *)
 let maj_conf (conf:configuration)(coup:coup):configuration=
   if coup_valide conf coup then applique_coup conf coup else
-    failwith "Ce coup n'est pas valide, le joueur doit rejouer";;
-
-(* Q22 *)
-(* Pour les questions suivantes on utilise une version améliorée de
-   remplir_segment_h qui gère les segments non horizontaux *)
-let rec remplir_segment ((i,j,k):case)(c2:case):case list=
-  if (i,j,k) = c2 then [c2] else
-  let ((a,b,c),d) = vec_et_dist (i,j,k) c2 in
-    (i,j,k)::(remplir_segment (i+a,j+b,k+c) c2);;
-
-let est_libre_seg (c1:case)(c2:case)(conf:configuration):bool=
-  List.for_all (fun x -> quelle_couleur x conf = Libre) (remplir_segment c1 c2);;
-
-(* Q23 *)
-(* Pour vérifier qu'un saut est valide on vérifie que les cases de départ et d'arrivée existent,
-   que c1 appartient au joueur qui joue, puis que les cases entre le pivot et c1 c2 sont libres.*)
-let saut_valide (c1:case)(c2:case)((lcc,lj,d):configuration):bool=
-  match calcul_pivot c1 c2 lcc with
-  |None -> false
-  |Some p -> est_dans_losange c1 d && est_dans_losange c2 d && quelle_couleur c1 (lcc,lj,d) = List.hd lj &&
-            (* On vérifie que les cases entre c1 et le c2 sont libres. On ne peut pas utiliser est_libre_seg
-               car il y a le pivot au milieu, mais c'est sensiblement la même fonction *)
-            List.for_all (fun x -> x = c1 || x = p || x = c2 || quelle_couleur x (lcc,lj,d) = Libre)
-            (remplir_segment c1 c2);;
+    failwith "Ce coup n'est pas valide, le joueur doit rejouer";;    
 
 (*AFFICHAGE*)
 (*transfo transforme des coordonnees cartesiennes (x,y) en coordonnees de case (i,j,k)*)
