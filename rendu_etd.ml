@@ -197,12 +197,14 @@ let rec remplir_segment ((i,j,k):case)(c2:case):case list=
     let ((a,b,c),d) = vec_et_dist (i,j,k) c2 in
     (i,j,k)::(remplir_segment (i+a,j+b,k+c) c2);;
   
+(* Pour qu'un segment soit libre il faut que chaque case qui le compose le soit *)
 let est_libre_seg (c1:case)(c2:case)(conf:configuration):bool=
   List.for_all (fun x -> quelle_couleur x conf = Libre) (remplir_segment c1 c2);;
   
-  (* Q23 *)
-  (* Pour vérifier qu'un saut est valide on vérifie que les cases de départ et d'arrivée existent,
-  puis que les cases entre le pivot et c1 c2 sont libres.*)
+(* Q23 *)
+(* Pour vérifier qu'un saut est valide on vérifie que le pivot est possible,
+  que les cases de départ et d'arrivée existent puis que les cases entre le
+  pivot et c1 c2 sont libres.*)
 let saut_valide (c1:case)(c2:case)((lcc,lj,d):configuration):bool=
   match calcul_pivot c1 c2 lcc with
   |None -> false
@@ -249,6 +251,28 @@ let rec score_gagnant (d:dimension):int=
 (* Q28 *)
 let gagne ((lcc,lj,d):configuration):bool=
   score (lcc,lj,d) = score_gagnant d;;
+
+(* Q29 *)
+(* On exécute tous les coups (les fonctions vérifient elles-mêmes s'ils sont valides)
+   puis on calcul le score de chacun et on affiche le plus haut *)
+let est_partie ((lcc, lj, d):configuration)(lc:coup list)=
+(* On applique tous les coups et renvoie la conf finale *)
+  let conf_finale = List.fold_left (maj_conf) (lcc, lj, d) lc in
+    (*  On calcul le score de chaque couleur dans la conf donnée et on renvoie
+       (conf_finale, [(score,joueur)]) *)
+    List.fold_left (fun (conf, scores) joueur -> tourner_conf conf, (joueur, score conf)::scores)
+    (conf_finale, []) lj;;
+
+(* test est_partie *)
+(* C'est au jaune de jouer *)
+let conf = ([((-3, 1, 2), Jaune); ((0, 0, 0), Vert); ((-2, 1, 1), Vert)], [Jaune; Vert], 3);;
+
+(* Le jaune fait un saut multiple *)
+let (conf_finale, score) = est_partie conf [Sm([(-3,1,2);(-1,1,0);(1,-1,0)])];;
+(* Plateau tourné car c'est à vert de jouer *)
+affiche conf_finale;;
+(* Les scores : *)
+score;;
 
 (*AFFICHAGE*)
 (*transfo transforme des coordonnees cartesiennes (x,y) en coordonnees de case (i,j,k)*)
