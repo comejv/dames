@@ -1,11 +1,3 @@
-(* -----------------------------------------------------------------------------
-   rendu_etd_NGUYEN-VINCENT.ml : Compte rendu du projet (partie 1)
-
-   NGUYEN Chu Hoang Anh  \
-   VINCENT Côme           - >  Groupe C
-   
-   -------------------------------------------------------------------------- *)
-
 type dimension = int;; (*restreint aux entiers strictement positifs*)
 
 type case = int * int * int;; (*restreint au triplet tels (i,j,k) tels que i+j+k=0*)
