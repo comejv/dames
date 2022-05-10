@@ -203,20 +203,25 @@ let est_libre_seg (c1:case)(c2:case)(conf:configuration):bool=
   
 (* Q23 *)
 (* Pour vérifier qu'un saut est valide on vérifie que le pivot est possible,
-  que les cases de départ et d'arrivée existent puis que les cases entre le
+  que les cases de départ et d'arrivée sont valides puis que les cases entre le
   pivot et c1 c2 sont libres.*)
 let saut_valide (c1:case)(c2:case)((lcc,lj,d):configuration):bool=
   match calcul_pivot c1 c2 lcc with
   |None -> false
   |Some p -> est_dans_etoile c1 d && est_dans_losange c2 d &&
-            (* On vérifie que les cases entre c1 et le c2 sont libres. On ne peut pas utiliser est_libre_seg
-            car il y a le pivot au milieu, mais c'est sensiblement la même fonction *)
+            (* On vérifie que les cases entre c1 et le c2 sont libres.
+            On ne peut pas utiliser est_libre_seg car il y a le pivot au milieu,
+            mais c'est sensiblement la même fonction *)
             List.for_all (fun x -> x = c1 || x = p || x = c2 || quelle_couleur x (lcc,lj,d) = Libre)
             (remplir_segment c1 c2);;
   
-  (* Q24 *)
+(* Q24 *)
+(* Ppour qu'un saut multiplse soit valide il faut que chacun des sauts intermédiaires
+   le soit *)
 let saut_multiple_valide (lc:case list)(conf:configuration):bool=
-  let b,cf = List.fold_left (fun (b, c1) c2 -> (b && saut_valide c1 c2 conf),c2) (true, List.hd lc) (List.tl lc)
+  let b,cf = List.fold_left (fun (b, c1) c2 -> (b && saut_valide c1 c2 conf),c2)
+              (* Accumulateur, liste *)
+              (true, List.hd lc) (List.tl lc)
   in b;;
 
 (* Q19 *)
@@ -228,12 +233,15 @@ let coup_valide ((lcc,lj,d):configuration)(c:coup):bool=
   |Sm(lc) -> saut_multiple_valide lc (lcc,lj,d);;
 
 (* Q20 *)
+(* Pour appliquer un coup on supprime la case de départ et on colorie la case d'arrivée *)
 let applique_coup ((lcc,lj,d):configuration)(c:coup):configuration=
   match c with
   |Du(c1,c2) -> colorie (List.hd lj) [c2] @ suppr_case lcc c1,lj,d
   |Sm(lc) -> colorie (List.hd lj) [der_liste lc] @ suppr_case lcc (List.hd lc),lj,d;;
 
 (* Q21 *)
+(* Pour mettre à jour la conf il faut vérifier que le coup est valide puis
+   l'appliquer et tourner la conf pour le joueur suivant *)
 let maj_conf (conf:configuration)(coup:coup):configuration=
   if coup_valide conf coup then tourner_conf (applique_coup conf coup) else
     failwith "Ce coup n'est pas valide, le joueur doit rejouer";;
@@ -262,17 +270,6 @@ let est_partie ((lcc, lj, d):configuration)(lc:coup list)=
        (conf_finale, [(score,joueur)]) *)
     List.fold_left (fun (conf, scores) joueur -> tourner_conf conf, (joueur, score conf)::scores)
     (conf_finale, []) lj;;
-
-(* test est_partie *)
-(* C'est au jaune de jouer *)
-let conf = ([((-3, 1, 2), Jaune); ((0, 0, 0), Vert); ((-2, 1, 1), Vert)], [Jaune; Vert], 3);;
-
-(* Le jaune fait un saut multiple *)
-let (conf_finale, score) = est_partie conf [Sm([(-3,1,2);(-1,1,0);(1,-1,0)])];;
-(* Plateau tourné car c'est à vert de jouer *)
-affiche conf_finale;;
-(* Les scores : *)
-score;;
 
 (*AFFICHAGE*)
 (*transfo transforme des coordonnees cartesiennes (x,y) en coordonnees de case (i,j,k)*)
@@ -321,12 +318,27 @@ let conf_reggae=([((0,-1,1),Vert);((0,0,0),Jaune);((0,1,-1),Rouge)],[Vert;Jaune;
 affiche conf_reggae;;
 let conf_vide=([],[],2);;
 affiche conf_vide;;
- *)
+*)
 
 (* La configuration initiale avec deux joueurs et un plateau de dimension 2*)
-(* Pourquoi une case colorée en dehors du plateau pour chaque ? *)
-let conf_init : configuration =
+(* let conf_init : configuration =
   ([((3, -1, -2), Jaune); ((3, -2, -1), Jaune); ((4, -2, -2), Jaune); ((5, -3, -2), Jaune); (* liste cases colorées *)
   ((-3, 1, 2), Vert); ((-3, 2, 1), Vert);((-4, 2, 2), Vert); ((-5, 3, 2), Vert)],
-   [Vert; Jaune], (* liste couleurs *)
-   2);; (* dimension *)
+  [Vert; Jaune], (* liste couleurs *)
+  2);; (* dimension *) *)
+
+(* test est_partie *)
+(* C'est au jaune de jouer *)
+let conf = ([((-3, 1, 2), Jaune); ((0, 0, 0), Vert); ((-2, 1, 1), Vert)], [Jaune; Vert], 3);;
+
+(* Le jaune fait un saut multiple *)
+let (conf_finale, scores) = est_partie conf [Sm([(-3,1,2);(-1,1,0);(1,-1,0)]);Du((0,0,0),(1,0,-1))];;
+
+(* Le plateau apparaît tourné car c'est à Vert de jouer *)
+affiche conf_finale;;
+
+(* Les scores : *)
+print_endline ("Il fallait "^(string_of_int (score_gagnant 3))^" points pour gagner.\n");;
+List.iter (fun (joueur, points) -> if points = score_gagnant 3 then print_endline ((couleur2string joueur)^" a gagné !")
+                                  else print_endline ((couleur2string joueur)^" a "^(string_of_int points)^" points\n"))
+                                scores;;
